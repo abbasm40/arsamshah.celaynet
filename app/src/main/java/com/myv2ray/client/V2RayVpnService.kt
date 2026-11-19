@@ -39,7 +39,7 @@ class V2RayVpnService : VpnService() {
             override fun onEmitStatus(l: Long, s: String?): Long = 0
         })
 
-        coreController?.startLoop(jsonConfig)
+        coreController?.startLoop(jsonConfig, vpnInterface?.fd ?: 0)
     }
 
     private fun stopVpn() {
