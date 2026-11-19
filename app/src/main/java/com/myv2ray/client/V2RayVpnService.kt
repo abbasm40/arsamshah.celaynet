@@ -3,14 +3,14 @@ package com.myv2ray.client
 import android.content.Intent
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
+import libv2ray.CoreCallbackHandler
+import libv2ray.CoreController
 import libv2ray.Libv2ray
-import libv2ray.V2RayPoint
-import libv2ray.V2RayVPNServiceSupportsSet
 
 class V2RayVpnService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
-    private var v2rayPoint: V2RayPoint? = null
+    private var coreController: CoreController? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
@@ -33,24 +33,18 @@ class V2RayVpnService : VpnService() {
 
         vpnInterface = builder.establish() ?: return
 
-        v2rayPoint = Libv2ray.newV2RayPoint(object : V2RayVPNServiceSupportsSet {
+        coreController = Libv2ray.newCoreController(object : CoreCallbackHandler {
+            override fun startup(): Long = 0
             override fun shutdown(): Long = 0
-            override fun prepare(): Long = 0
-            override fun protect(fd: Long): Boolean = this@V2RayVpnService.protect(fd.toInt())
-            override fun onEmitStatus(code: Long, msg: String?): Long = 0
-            override fun setup(conf: String?): Long = 0
-        }, false)
+            override fun onEmitStatus(l: Long, s: String?): Long = 0
+        })
 
-        v2rayPoint?.apply {
-            configureFileContent = jsonConfig
-            domainName = "proxy"
-            runLoop(false)
-        }
+        coreController?.startLoop(jsonConfig)
     }
 
     private fun stopVpn() {
         try {
-            v2rayPoint?.stopLoop()
+            coreController?.stopLoop()
             vpnInterface?.close()
         } catch (_: Exception) {}
         stopSelf()
